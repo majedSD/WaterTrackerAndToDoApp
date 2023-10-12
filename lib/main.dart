@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';///date time format nia kaj kora jonno pubspec.yaml a add kora lage
-void main(){
-  runApp( MyApp());
+import 'package:intl/intl.dart';
+import 'package:todoproject/add_new_task_model.dart';
+import 'package:todoproject/todo.dart';
+import 'package:todoproject/updat_new_task_model.dart';
+
+void main() {
+  runApp(MyApp());
 }
-class MyApp extends StatelessWidget{
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-   return MaterialApp(
-     title: 'To Do Project',
-     home: HomeScreen(),
-   );
+    return MaterialApp(
+      title: 'To Do Project',
+      /**
+       * CRUD--means---Creat,Read,Update,Delet
+       */
+      home: HomeScreen(),
+      debugShowCheckedModeBanner: false,
+    );
   }
-
 }
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,81 +32,117 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
- // List<DateTime>waterConsumeList=[];
-  List<WaterTrack>waterConsumeList=[];
-  TextEditingController fild1=TextEditingController();
-  int TotalAmount=0;
+  List<Todo> todoList = [];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Water tracker'),
-        elevation: 10,
+        title: const Text('Todos'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text('Total Consume',style: Theme.of(context).textTheme.titleLarge),///By deauflt design nia kaj korte pari
-            Text('${TotalAmount}',style: Theme.of(context).textTheme.titleLarge,),
-            Row(
-              children: [
-                SizedBox(
-                  width: 300,
-                  child: TextField(
-                    controller: fild1,
-                    keyboardType:TextInputType.number,
-                    textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                ElevatedButton(onPressed: (){
-                  int amount=int.tryParse(fild1.text.trim())??1;
-                  TotalAmount+=amount;
-                    WaterTrack waterTrack=WaterTrack(DateTime.now(),amount);
-                   waterConsumeList.add(waterTrack);
-                   fild1.text='';
-                   setState(() {});
-                }, child:Text('Add')),
-              ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            builder: (context) {
+              return AddNewTaskModel(
+                onAddTap: (Todo task) {
+                  addTodo(task);
+                },
+              );
+            },
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
+      body: ListView.separated(
+        itemCount: todoList.length,
+        itemBuilder: (context, index) {
+          final Todo todo = todoList[index];
+          final String formattedDate =
+          DateFormat('hh:mm a dd-MM-yy').format(todo.createdDateTime);
+          return ListTile(
+            tileColor: todo.status == 'done' ? Colors.grey : null, // ternary
+            onTap: () {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('Actions'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.edit),
+                            title: const Text('Update'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return UpdateNewTaskModel(
+                                      todo: todo,///todo ka update korar jonno nia jabe
+                                      onTodoUpdate: (String todoDetails ) {
+                                        Navigator.pop(context);
+                                        updateTodo(index,todoDetails);///ekan teka method a value patabe
+                                    },
+
+                                    );
+                                  });
+                            },
+                          ),
+                          const Divider(
+                            height: 0,
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.delete_outline),
+                            title: const Text('Delete'),
+                            onTap: () {
+                              deletTodo(index);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  });
+            },
+            onLongPress: () {
+              String currentStatus = todo.status == 'pending' ? 'done' : 'pending';
+              updateTodoStatus(index, currentStatus);
+            },
+            leading: CircleAvatar(
+              child: Text('${index + 1}'),
             ),
-            SizedBox(height: 10,),
-            Expanded(
-                child: ListView.builder(
-                  itemCount: waterConsumeList.length,
-                    //reverse: true,
-                    itemBuilder: (context,index){
-                     return Card(
-                       elevation: 10,
-                       child: ListTile(
-                         onTap: (){
-                           TotalAmount-=waterConsumeList[index].noOfGlass;
-                           waterConsumeList.removeAt(index);
-                           setState(() {});
-                         },
-                         ///Date time format nia kaj korar jonno pubspec.yaml a ( intl: ^0.18.1) add kora lage
-                        title: Text(DateFormat('HH-mm-s   dd-MM--yyyy').format(waterConsumeList[index].time)),
-                         leading: CircleAvatar(
-                           child: Text('${index+1}'),
-                         ),
-                         trailing: Text('${waterConsumeList[index].noOfGlass}'),
-                         ),
-                      );
-                    }
-                ),
-            ),
-          ],
-        ),
+            title: Text(todo.details),
+            subtitle: Text(formattedDate),
+            trailing: Text(todo.status.toUpperCase()),
+          );
+        },
+        separatorBuilder: (BuildContext context, int index) {
+          return const Divider(
+            height: 4,
+          );
+        },
       ),
     );
   }
+
+  void addTodo(Todo todo) {
+    todoList.add(todo);
+    setState(() {});
+  }
+  void deletTodo(index){
+    Navigator.pop(context);
+    todoList.removeAt(index);
+    setState(() {});
+  }
+ void updateTodo(int index,String todoDetails){
+    todoList[index].details=todoDetails;
+    setState(() {});
+ }
+  void updateTodoStatus(int index,String status){
+    todoList[index].status=status;
+    setState(() {});
+  }
 }
-/// Ekon ami date time er sathe text field teka praptho number of glass o list er moddhe rakte chai
-/// List er moddhe date time and no of glass rakte chai ai jonno custome data type nia kaj korte hobe
-class WaterTrack{
-  final DateTime time;
-  final int noOfGlass;
-  WaterTrack(this.time, this.noOfGlass);
-}
+
