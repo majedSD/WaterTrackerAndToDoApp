@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-
-import '../widgets/profile_summaryCard.dart';
-import '../widgets/task_item_card.dart';
+import 'package:todoproject/data/model/task_list_model.dart';
+import 'package:todoproject/data/networkcaller/network_caller.dart';
+import 'package:todoproject/data/networkcaller/network_response.dart';
+import 'package:todoproject/data/utility/urls.dart';
+import 'package:todoproject/ui/widgets/profile_summaryCard.dart';
+import 'package:todoproject/ui/widgets/task_item_card.dart';
 
 class CancelledTaskScreen extends StatefulWidget {
   const CancelledTaskScreen({super.key});
@@ -11,22 +14,66 @@ class CancelledTaskScreen extends StatefulWidget {
 }
 
 class _CancelledTaskScreenState extends State<CancelledTaskScreen> {
+  bool getCancelledTaskInProgress = false;
+  TaskListModel taskListModel = TaskListModel();
+
+  Future<void> getCompletedTaskList() async {
+    getCancelledTaskInProgress = true;
+    if (mounted) {
+      setState(() {});
+    }
+    final NetworkResponse response =
+    await NetworkCaller().getRequest(Urls.getCancelledTasks);
+    if (response.isSuccess) {
+      taskListModel = TaskListModel.fromJson(response.jsonResponse);
+    }
+    getCancelledTaskInProgress = false;
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getCompletedTaskList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         body: SafeArea(
-      child: Column(
-        children: [
-          ProfileSummaryCard(),
-          Expanded(
-            child: ListView.builder(
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return TaskItemCard();
-                }),
+          child: Column(
+            children: [
+              ProfileSummaryCard(),
+              Expanded(
+                child: Visibility(
+                  visible: getCancelledTaskInProgress == false,
+                  replacement: const Center(child: CircularProgressIndicator()),
+                  child: RefreshIndicator(
+                    onRefresh: getCompletedTaskList,
+                    child: ListView.builder(
+                      itemCount: taskListModel.taskList?.length ?? 0,
+                      itemBuilder: (context, index) {
+                        return TaskItemCard(
+                          task: taskListModel.taskList![index],
+                          onStatusChange: () {
+                            getCompletedTaskList();
+                          },
+                          showProgress: (inProgress) {
+                            getCancelledTaskInProgress = inProgress;
+                            if (mounted) {
+                              setState(() {});
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ));
+        ));
   }
 }
