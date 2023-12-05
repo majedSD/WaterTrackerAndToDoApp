@@ -20,6 +20,6 @@ class Urls {
   static String verifyPinCode(String email, String pin) =>
       '$_baseUrl/RecoverVerifyOTP/$email/$pin';
   static const String setNewPassword = '$_baseUrl/RecoverResetPass';
-  static String deleteTask(String taskId) => '$_baseUrl/deleteTask/$taskId';
+  static String deleteTask(String taskId) => '$_baseUrl/deleteTask/$taskId';//
 
 }
