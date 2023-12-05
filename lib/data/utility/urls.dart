@@ -1,5 +1,4 @@
 
-
 import 'package:todoproject/ui/widgets/task_item_card.dart';
 
 class Urls {
@@ -13,7 +12,14 @@ class Urls {
   static String getCompletedTask = '$_baseUrl/listTaskByStatus/${TaskStatus.Completed.name}';
   static String getCancelledTasks = '$_baseUrl/listTaskByStatus/${TaskStatus.Cancelled.name}';
   static String updateTaskStatus(String taskId, String status) =>
-      '$_baseUrl/updateTaskStatus/$taskId/$status';
+      '$_baseUrl/updateTaskStatus/$taskId/$status';static const String updateProfile = '$_baseUrl/profileUpdate';
+  static const String profileUpdate = '$_baseUrl/profileUpdate';
 
-  static const String updateProfile = '$_baseUrl/profileUpdate';
+  static String verifyEmailAddress(String email) =>
+      '$_baseUrl/RecoverVerifyEmail/$email';
+  static String verifyPinCode(String email, String pin) =>
+      '$_baseUrl/RecoverVerifyOTP/$email/$pin';
+  static const String setNewPassword = '$_baseUrl/RecoverResetPass';
+  static String deleteTask(String taskId) => '$_baseUrl/deleteTask/$taskId';
+
 }

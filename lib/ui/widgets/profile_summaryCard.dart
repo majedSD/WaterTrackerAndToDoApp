@@ -55,7 +55,6 @@ class ProfileSummaryCard extends StatelessWidget {
       trailing: IconButton(
         onPressed: () async {
           await AuthController.clearAuthData();
-          // TODO : solve this warning
           Navigator.pushAndRemoveUntil(
               context, MaterialPageRoute(builder: (context) => const LoginScreen()), (
               route) => false);

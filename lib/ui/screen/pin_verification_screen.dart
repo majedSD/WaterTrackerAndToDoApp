@@ -1,112 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:todoproject/data/networkcaller/network_caller.dart';
+import 'package:todoproject/data/networkcaller/network_response.dart';
+import 'package:todoproject/data/utility/urls.dart';
 import 'package:todoproject/ui/screen/login_screen.dart';
 import 'package:todoproject/ui/screen/reset_password.dart';
 import 'package:todoproject/ui/widgets/body_background.dart';
-
-class PinVerificationScreen extends StatefulWidget {
-  const PinVerificationScreen({super.key});
+import 'package:todoproject/ui/widgets/snack_message.dart';
+class PinVerifyScreen extends StatefulWidget {
+  final String email;
+  const PinVerifyScreen({super.key, required this.email});
 
   @override
-  State<PinVerificationScreen> createState() => _PinVerificationScreenState();
+  State<PinVerifyScreen> createState() => _PinVerifyScreenState();
 }
 
-class _PinVerificationScreenState extends State<PinVerificationScreen> {
+class _PinVerifyScreenState extends State<PinVerifyScreen> {
+  Map<String, String> pinCode = {'otp': ''};
+  bool pinVerifyInProgress = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: BodyBackground(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+        child: Padding(
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 60,
+          ),
+          child: SafeArea(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(
-                    height: 80,
-                  ),
+                  Text("PIN Verification",
+                      style: Theme.of(context).textTheme.bodyLarge),
+                  const SizedBox(height: 8),
                   Text(
-                    'Pin Verification',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    "A 6 digit verification pin will be send to your email address",
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  const Text(
-                    'A 6 digit OTP will be sent to your email address',
-                    style: TextStyle(
-                        color: Colors.grey, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(
-                    height: 24,
-                  ),
+                  const SizedBox(height: 16),
                   PinCodeTextField(
+                    appContext: context,
                     length: 6,
                     obscureText: false,
+                    keyboardType: TextInputType.number,
                     animationType: AnimationType.fade,
-                    pinTheme: PinTheme(
-                      shape: PinCodeFieldShape.box,
-                      borderRadius: BorderRadius.circular(5),
-                      fieldHeight: 50,
-                      fieldWidth: 40,
-                      activeFillColor: Colors.white,
-                      activeColor: Colors.green,
-                      selectedFillColor: Colors.white,
-                      inactiveFillColor: Colors.white,
-                    ),
                     animationDuration: const Duration(milliseconds: 300),
+                    backgroundColor: Colors.transparent,
                     enableActiveFill: true,
-                    onCompleted: (v) {
-                      print("Completed");
+                    onCompleted: (v) {},
+                    onChanged: (value) {
+                      pinCode['otp'] = value;
                     },
-                    onChanged: (value) {},
-                    beforeTextPaste: (text) {
-                      return true;
-                    },
-                    appContext: context,
                   ),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ResetPasswordScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('Verify'),
+                  const SizedBox(height: 8),
+                  Visibility(
+                    visible: pinVerifyInProgress == false,
+                    replacement: Center(
+                        child: CircularProgressIndicator(
+                        )),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: verifyPinCode,
+                        child: const Text("Verify"),
+                      ),
                     ),
                   ),
-                  const SizedBox(
-                    height: 48,
-                  ),
+                  const SizedBox(height: 48),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        "Have an account?",
+                        "Have account?",
                         style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black54),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const LoginScreen()),
-                                  (route) => false);
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                                (route) => false,
+                          );
                         },
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(fontSize: 16),
+                        child: Text(
+                          "Sign in",
                         ),
                       ),
                     ],
@@ -118,5 +104,42 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> verifyPinCode() async {
+    if (pinCode['otp'] != null && pinCode['otp']?.length == 6) {
+      pinVerifyInProgress = true;
+      if (mounted) {
+        setState(() {});
+      }
+
+      final NetworkResponse response = await NetworkCaller().getRequest(
+          Urls.verifyPinCode(widget.email, pinCode['otp']!));
+
+      pinVerifyInProgress = false;
+      if (mounted) {
+        setState(() {});
+      }
+      if (response.isSuccess && response.jsonResponse['status'] != 'fail') {
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>SetPasswordScreen(
+                email: widget.email,
+                pin: pinCode['otp']!,
+              ),
+            ),
+                (route) => false,
+          );
+        }
+      } else {
+        if (mounted) {
+          showSnackMessage(context, "Invalid OTP Code.", true);
+        }
+      }
+    } else {
+      showSnackMessage(context, "Invalid OTP Code.", true);
+    }
   }
 }
